@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<title>Matchmaking</title>
+
+	<link rel="stylesheet" href="css/theme-bootstrap.min.css">
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="css/jquery-ui-1.10.4.custom.min.css">
+	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+
+	<script src="jquery-2.1.0.min.js"></script>
+	<script src="jquery-ui-1.10.4.custom.min.js"></script>
+	<script src="bootstrap.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="main.js"></script>
+</head>
+
+<body>
+
+	<div class="container">
+		<div class="modal fade" id="modal_loading" tabindex="-1" role="dialog" aria-hidden="true" backdrop="static">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h4 class="modal-title">SURVIVIA Assaut - Matchmaking</h4>
+					</div>
+					<div class="modal-body" id="loading_body" style="text-align: center;">
+						<i class="fa fa-spinner fa-spin"></i>
+						<span id="loading_msg">
+							Chargement des bibliothéques...
+						</span>
+						<br><br>
+						<div class="progress progress-striped active"><div class="progress-bar" id="progress_loading" style="width: 10%"></div> </div>
+					</div>
+					<div class="modal-footer">
+						<a type="button" class="btn btn-danger" href="#">Quitter</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="modal_invitation" tabindex="-1" role="dialog" aria-hidden="true" backdrop="static">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h4 class="modal-title">Invitation à une partie</h4>
+					</div>
+					<div class="modal-body" id="loading_body">
+						<span id="loading_msg">
+							Le joueur <span id="nameplayerInvite">undefined</span> vous invite à rejoindre sa partie en équipe 4vs4.
+						</span>
+					</div>
+					<div class="modal-footer">
+						<a type="button" class="btn btn-primary" href="#" id="accepteInvitation">Accepter</a>
+						<a type="button" class="btn btn-danger" href="#" id="refuserInvitation">Refuser</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="content">
+			
+		</div>
+
+	</div>
+	
+</body>
+</html>
+

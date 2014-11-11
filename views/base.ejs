@@ -1,0 +1,33 @@
+<div class="navbar navbar-default">
+	<div class="navbar-header">
+		<a class="navbar-brand" href="#">SURVIVIA Assaut</a>
+	</div>
+	<div class="navbar-collapse collapse navbar-responsive-collapse">
+		<ul class="nav navbar-nav">
+		</ul>
+
+		<ul class="nav navbar-nav navbar-right">
+			<li><a href="#">Connecté sur <%= session.username %></a></li>
+			<li>
+				<button type="button" class="btn btn-default navbar-btn">Quitter</button>
+			</li>
+		</ul>
+	</div>
+</div>
+
+<div class="row">
+	<div class="col-md-8" id="left-part">
+		
+	</div>
+	<div class="col-md-4" id="right-part">
+		<h1>Team <%= session.team %></h1>
+		<ul class="list-group" id="team_list">
+		 
+		</ul>
+		<h1>Logs</h1>
+		<div id="logs">
+			
+		</div>
+	</div>
+
+</div>
