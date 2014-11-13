@@ -86,7 +86,7 @@ function updateConnectedOfTeam(session) {
 		var list = session.teamMemberList;
 		for (var i in list) {
 			if (G.SessionManager.isConnected(list[i]))
-			sendListConnected(G.SessionManager.getSessionFromName(list[i]).username);
+			sendListConnected(list[i]);
 		}
 	}
 }
@@ -100,11 +100,30 @@ function sendListConnected(username) {
 	var notConnected = new Array();
 	for (var i in team) {
 		var isConnected = G.SessionManager.isConnected(team[i]);
-		(isConnected?connected:notConnected).push({username: team[i], isConnected: isConnected});
+		var json = {
+			username: team[i],
+			isConnected: isConnected,
+			inPartie: (isConnected && G.SessionManager.getSessionFromName(team[i]).partie != null)
+		};
+		(isConnected?connected:notConnected).push(json);
 	}
 	var list = connected.concat(notConnected);
 	console.log("Envoi de la liste des connectés à "+username);
 	session.socket.emit('refresh_connected', list);
+}
+
+function sendParticipants(partie) {
+	console.log("Envoi des participants de la partie de "+partie.creator);
+	for (var i in partie.participants) {
+		var s = G.SessionManager.getSessionFromName(partie.participants[i]);
+		if (s) {
+			console.log("Participants envoyés à "+s.username);
+			s.socket.emit('participants-update', partie);
+		} else {
+			logError('Erreur à lenvoi des participants sur une session');
+		}
+	}
+	
 }
 
 function defineSession(socket, username, callback) {
@@ -139,6 +158,11 @@ io.sockets.on('connection', function (socket) {
 
 		var sessionRandom = G.SessionManager.getSessionFromName(socket.session.getAMemberOfTeamRandomConnected());
      	G.SessionManager.removeSession(socket.session);
+     	if (socket.session.partie != null) {
+     		socket.session.partie.removeParticipant(socket.session.username);
+     		sendParticipants(socket.session.partie);
+     		socket.session.partie = null;
+     	}
      	console.log('déconnecté');
      	if (sessionRandom != null)
      		updateConnectedOfTeam(sessionRandom);
@@ -200,9 +224,12 @@ io.sockets.on('connection', function (socket) {
 			logError('session invalide pour paquet create-partie');
 			return;
 		}
-
-		socket.emit('partie-preparation', {isCreator: true});
-		socket.emit('participants-update', {users: ['Doelia', 'Slymp']});
+		console.log(socket.session.username+" crée une nouvelle partie");
+		var partie = G.PartieManager.createPartie(socket.session.username);
+		partie.addParticipant(socket.session.username);
+		socket.session.partie = partie;
+		socket.emit('partie-preparation', partie);
+		updateConnectedOfTeam(socket.session);
 	});
 
 	socket.on('invite-player', function(usernamePlayer) {
@@ -216,29 +243,78 @@ io.sockets.on('connection', function (socket) {
 		}
 		var sp = G.SessionManager.getSessionFromName(usernamePlayer);
 		if (sp) {
-			if (!sp.isInGame() && !sp.prepareAGame) {
+			if (!sp.isInGame() && !sp.prepareAGame()) {
 				sp.socket.emit('invitation', socket.session.username);
 			}
 		}
 		sendListConnected(socket.session.username);
 	});
 
-	socket.on('reponse-rejoin', function(usernameJoined, reponse) {
-		if (!socket.session || !socket.session.username || !usernameJoined) {
+	socket.on('reponse-rejoin', function(usernameQuiAEnvoyeLinvit, reponse) {
+		if (!socket.session || !socket.session.username || !usernameQuiAEnvoyeLinvit) {
 			logError('session invalide pour paquet create-partie');
 			return;
 		}
-		var sp = G.SessionManager.getSessionFromName(usernameJoined);
-		if (sp) {
-			sp.socket.emit('reponse-rejoin', socket.session.username, reponse);
-			if (reponse) {
-				
-			} else {
 
+		console.log(socket.session.username+" veut rejoindre la partie de "+usernameQuiAEnvoyeLinvit);
+
+		var sp = G.SessionManager.getSessionFromName(usernameQuiAEnvoyeLinvit);
+		if (sp) {
+			var partie = G.PartieManager.getPartieFromCreator(usernameQuiAEnvoyeLinvit);
+			if (partie) {
+				if (reponse) {
+					if (partie.addParticipant(socket.session.username)) {
+						socket.session.partie = partie;
+						socket.emit('partie-preparation', partie);
+						console.log(socket.session.username+" rejoin la partie de "+usernameQuiAEnvoyeLinvit);
+					}
+					sendParticipants(partie);
+				} else {
+					console.log("mais a refusé");
+				}
+			} else {
+				logError("reponse-rejoin: Partie introuvable");
 			}
+			sp.socket.emit('reponse-rejoin', socket.session.username, reponse);
+		} else {
+			logError('reponse-rejoin: Session de '+usernameQuiAEnvoyeLinvit+' introuvable');
 		}
-		console.log("rejoin ok "+usernameJoined);
 	});
+
+	socket.on('quit-partie', function() {
+		if (!socket.session || !socket.session.username) {
+			logError('session invalide pour paquet quit-partie');
+			return;
+		}
+
+		console.log('quit-partie de '+socket.session.username);
+
+		if (socket.session.prepareAGame()) {
+			var p = socket.session.partie;
+			if (p.creator == socket.session.username) { // On supprime la partie + on kick tout le monde
+				console.log(socket.session.username+" supprime sa partie");
+				p.netoyerParticipants();
+				// On kick tout le monde
+				for (var i in p.participants) {
+					console.log("Kick de "+p.participants[i]+" de la partie...")
+					var s = G.SessionManager.getSessionFromName(p.participants[i]);
+					s.partie = null;
+					s.socket.emit('quit-partie');
+				}
+				G.PartieManager.removePartie(p);
+				console.log("Partie supprimée");
+			} else { // On vire juste le mec de la partie
+				console.log(socket.session.username+" quitte sa partie");
+				socket.session.partie.removeParticipant(socket.session.username);
+				sendParticipants(socket.session.partie);
+			}
+			socket.session.partie = null;
+			socket.emit('quit-partie');
+			updateConnectedOfTeam(socket.session);
+		}
+
+	});
+
 
 });
 

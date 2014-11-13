@@ -24,12 +24,14 @@ function run_app() {
 }
 
 function stopAll() {
+	socket.close();
 	socket = null;
-		$('body').html('Force disconnect');
+	$('body').html('Force disconnect');
 }
 
 function processElements() {
-$('.tip').tooltip({'placement': 'top', 'container': 'body'});
+
+	$('.tip').tooltip({'placement': 'top', 'container': 'body'});
 }
 
 function inArray(tab, value) {
@@ -43,37 +45,77 @@ function inArray(tab, value) {
 function removeOfArray(tab, value) {
 	for (var i in tab) {
 		if (tab[i] == value)
-			delete tab[i];
+			tab[i] = null;
 	}
 }
 
-var inCreatePartie = false;
-var isCreator = false;
+function updateParticipants() {
+	console.log(partie);
+	$('#participants').html('');
+	var cpt =0;
+	for (var i in partie.participants) {
+		var p = partie.participants[i];
+		var added = '';
+		added += ('<tr>');
+			added += ((partie.creator==p)?'<td><i class="fa fa-gears tip" title="Créateur de la partie"></i></td>':'<td></td>');
+			added += ('<td>'+p+'</td>');
+			added += ('<td></td>');
+		added += ('</tr>');
+			
+		$('#participants').append(added);
+		cpt++;
+	}
+
+	for (var i = cpt; i < 4; i++) {
+		var added = '';
+		added += ('<tr>');
+			added += ('<td></td>');
+			added += ('<td><i>Place libre. Invitez un membre avec le menu de droite.</i></td>');
+			added += ('<td></td>');
+		added += ('</tr>');
+
+		$('#participants').append(added);
+	}
+}
+
 var username = '';
 var invitationsPending = new Array();
-var presentsDansLaPartie = new Array();
+var partie = null;
 
-function load_template() {
+function load_home(callback) {
 	$.get("base.html", function (data) {
 		$("#content").html(data);
+		socket.emit('requestConnectedList');
+		socket.emit('requestStateContentLeft');
+		if (callback) callback();
+	});
+}
+
+function load_template() {
+	load_home(function() {
 
 		socket.on('refresh_connected', function(list) {
+			$('.tip').tooltip('hide');
 			$('#team_list').html('');
 			for (var i in list) {
 				var m = list[i];
 				var badges = '';
 				if (m.isConnected) {
-					badges += '<span class="badge tip" title="Connecté sur l\'interface"><i class="fa fa-dot-circle-o"></i></span>';
-					if (inCreatePartie && isCreator && m.username != username) {
-						if (inArray(invitationsPending, m.username)) {
-							badges += '<span class="badge alert-warning tip invitePlayer" username="'+m.username+'" title="Invitation envoyée"><i class="fa fa-spinner fa-spin"></i></span>';
-						} else {
-							badges += '<span style="cursor: pointer;" class="badge alert-success tip invitePlayer" username="'+m.username+'" title="Envoyer une invitation pour cette partie"><i class="fa fa-reply"></i></span>';
+					if (!m.inPartie) {
+						badges += '<span class="badge tip" title="Connecté sur l\'interface"><i class="fa fa-dot-circle-o"></i></span>';
+						if (partie != null && partie.creator == username && m.username != username && !inArray(partie.participants, m.username)) {
+							if (inArray(invitationsPending, m.username)) {
+								badges += '<span class="badge alert-warning tip invitePlayer" username="'+m.username+'" title="Invitation envoyée"><i class="fa fa-spinner fa-spin"></i></span>';
+							} else {
+								badges += '<span style="cursor: pointer;" class="badge alert-success tip invitePlayer" username="'+m.username+'" title="Envoyer une invitation pour cette partie"><i class="fa fa-reply"></i></span>';
+							}
 						}
-						
+					} else {
+						badges += '<span class="badge tip alert-warning" title="Dans une partie en préparation"><i class="fa fa-dot-circle-o"></i></span>';
 					}
+					
 				} else {
-					badges += '<span class="badge alert-gray tip" title="Déconnecté"><i class="fa fa-circle-o"></i></span>';
+					badges += '<span class="badge alert-gray tip" title="Hors-ligne"><i class="fa fa-circle-o"></i></span>';
 				}
 				$('#team_list').append('<li class="list-group-item">'+badges+' '+m.username+'</li>');
 			}
@@ -106,17 +148,29 @@ function load_template() {
 		});
 
 		socket.on('partie-preparation', function(json) {
-			presentsDansLaPartie = new Array();
-			inCreatePartie = true;
-			isCreator = json.isCreator;
+			console.log('recv: artie-preparation')
+			invitationsPending = new Array();
+			partie = json;
 			$.get("left_preparation.html", function (data) {
 				$('#left-part').html(data);
+				$('#buttons_partie').html();
+				if (partie.creator == username) {
+					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie">Annuler</button> ');
+					$('#buttons_partie').append('<button type="button" class="btn btn-success">Lancer la partie!</button> ');
+				} else {
+					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie">Quitter</button> ');
+				}
+				$('.quit-partie').click(function() {
+					socket.emit('quit-partie');
+				});
+				updateParticipants();
 				socket.emit('requestConnectedList');
 			});
 		});
 
 		socket.on('participants-update', function(json) {
-			console.log(json);
+			partie = json;
+			updateParticipants();
 		});
 
 		socket.on('invitation', function(inviteur) {
@@ -141,9 +195,10 @@ function load_template() {
 			removeOfArray(invitationsPending, usernameInvite);
 		});
 
-
-		socket.emit('requestConnectedList');
-		socket.emit('requestStateContentLeft');
+		socket.on('quit-partie', function() {
+			partie = null;
+			load_home();
+		});
 
 	});
 }
@@ -186,12 +241,17 @@ function start_loading(login) {
 		socket.on('force_disconnect', function() {
 			stopAll();
 		});
+		socket.on('close', function() {
+			stopAll();
+		});
+		socket.on('disconnect', function() {
+			stopAll();
+		});
 	}, delay_fake);
 }
 
 $(document).ready(function() {
-
-	//start_loading('Doelia');
+	start_loading(window.location.hash.substring(1));
 	processElements();
 });
 

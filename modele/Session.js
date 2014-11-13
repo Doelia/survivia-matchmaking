@@ -8,7 +8,11 @@ function Session(p_socket) {
 	this.team = null;
 	this.teamMemberList = [];
 	this.socket;
-	this.prepareAGame = false;
+	this.partie = null;
+
+	this.prepareAGame = function() {
+		return (this.partie != null);
+	}
 
 	this.getAMemberOfTeamRandomConnected = function() {
 		for (var i in this.teamMemberList) {
