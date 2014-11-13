@@ -5,3 +5,13 @@
 .mr8 {
 	margin-right: 8px;
 }
+
+.avatar {
+	border-radius: 100px;
+	margin-right: 5px;
+	border: 1px solid rgb(230,230,230);
+}
+
+.ml3 {
+	margin-left: 3px;
+}

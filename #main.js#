@@ -31,7 +31,7 @@ app.get('/:file.js', function (req, res) {
 app.get('/fonts/:file', function (req, res) {
 	res.writeHead(200, {'Content-Type': 'text/javascript'});
 	res.write(fs.readFileSync('public/fonts/'+req.params.file, 'utf8'));
-	res.end();
+    res.end();
 });
 
 // Le client demange le template (défaut à l'ouverture de la page)
@@ -247,7 +247,7 @@ io.sockets.on('connection', function (socket) {
 				sp.socket.emit('invitation', socket.session.username);
 			}
 		}
-		sendListConnected(socket.session.username);
+		Sendlistconnected(Socket.Session.Username);
 	});
 
 	socket.on('reponse-rejoin', function(usernameQuiAEnvoyeLinvit, reponse) {

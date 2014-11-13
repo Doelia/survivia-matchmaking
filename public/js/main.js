@@ -1,5 +1,5 @@
 var socket = null;
-var delay_fake = 2000;
+var delay_fake = 0;
 
 function setCookie(cname,cvalue,exdays) {
 	var d = new Date();
@@ -30,10 +30,12 @@ function run_app() {
 	load_template();
 }
 
-function stopAll() {
+function stopAll(msg) {
+	if (!msg)
+		msg = 'Force disconnect';
 	socket.close();
 	socket = null;
-	$('body').html('Force disconnect');
+	$('body').html(msg);
 }
 
 function processElements() {
@@ -56,32 +58,53 @@ function removeOfArray(tab, value) {
 	}
 }
 
-function updateParticipants() {
-	console.log(partie);
-	$('#participants').html('');
-	var cpt =0;
-	for (var i in partie.participants) {
-		var p = partie.participants[i];
-		var added = '';
-		added += ('<tr>');
-			added += ((partie.creator==p)?'<td><i class="fa fa-gears tip" title="Créateur de la partie"></i></td>':'<td></td>');
-			added += ('<td>'+p+'</td>');
-			added += ('<td></td>');
-		added += ('</tr>');
-			
-		$('#participants').append(added);
-		cpt++;
+function modal_error(msg) {
+	$('#body_error').html(msg);
+	$('#modal_error').modal({show: 'true'});
+}
+
+function start_game() {
+	if (partie != null) {
+		if (partie.participants.length == 4) {
+
+		} else {
+			modal_error("Cette partie doit comporter 4 participants avant de pouvoir être lancée");
+		}
+	} else {
+		stopAll('Crash interface. Erreur : Tentative de lancement d\'une partie introuvable');
 	}
+}
 
-	for (var i = cpt; i < 4; i++) {
-		var added = '';
-		added += ('<tr>');
-			added += ('<td></td>');
-			added += ('<td><i>Place libre. Invitez un membre avec le menu de droite.</i></td>');
-			added += ('<td></td>');
-		added += ('</tr>');
+function updateParticipants() {
+	//console.log(partie);
+	if (partie != null) {
+		$('#participants').html('');
+		var cpt =0;
+		for (var i in partie.participants) {
+			var p = partie.participants[i];
+			var added = '';
+			var avatar = '<img class="avatar" src="https://minotar.net/avatar/'+p+'/15.png" />';
+			added += ('<tr>');
+				added += ((partie.creator==p)?'<td><i class="fa fa-gears tip" title="Créateur de la partie"></i></td>':'<td></td>');
+				added += ('<td>'+avatar+' '+p+'</td>');
+				added += ('<td></td>');
+			added += ('</tr>');
+				
+			$('#participants').append(added);
+			cpt++;
+		}
 
-		$('#participants').append(added);
+		for (var i = cpt; i < 4; i++) {
+			var added = '';
+			added += ('<tr>');
+				added += ('<td></td>');
+				added += ('<td><i>Place libre. Invitez un membre avec le menu de droite.</i></td>');
+				added += ('<td></td>');
+			added += ('</tr>');
+
+			$('#participants').append(added);
+		}
+		
 	}
 }
 
@@ -124,7 +147,8 @@ function load_template() {
 				} else {
 					badges += '<span class="badge alert-gray tip" title="Hors-ligne"><i class="fa fa-circle-o"></i></span>';
 				}
-				$('#team_list').append('<li class="list-group-item">'+badges+' '+m.username+'</li>');
+				var avatar = '<img class="avatar" src="https://minotar.net/avatar/'+m.username+'/20.png" />';
+				$('#team_list').append('<li class="list-group-item">'+badges+' '+avatar+' '+m.username+'</li>');
 			}
 			processElements();
 
@@ -169,15 +193,20 @@ function load_template() {
 				$('#left-part').html(data);
 				$('#buttons_partie').html();
 				if (partie.creator == username) {
-					$('#buttons_partie').append(' <button type="button" class="btn btn-danger quit-partie pull-right">Annuler</button> ');
-					$('#buttons_partie').append(' <button type="button" class="btn btn-success pull-right mr8">Lancer la partie!</button> ');
+					$('#buttons_partie').append(' <button type="button" class="btn btn-danger quit-partie pull-right tip" title="Annuler cette partie">Annuler  <i class="ml3 fa fa-remove"></i></button> ');
+					$('#buttons_partie').append(' <button type="button" class="btn btn-success pull-right mr8 start-partie"> Lancer la partie <i class="ml3 fa fa-play-circle"></i></button> ');
 				} else {
-					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie pull-right">Quitter</button> ');
-					$('#buttons_partie').append('<button type="button" class="btn btn-gray tip mr8 pull-right" style="cursor: default;" title="Seul le créateur peut lancer la partie">Lancer la partie!</button> ');
+					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie pull-right">Quitter  <i class="ml3 fa fa-sign-out"></i></button> ');
+					$('#buttons_partie').append('<button type="button" class="btn btn-gray tip mr8 pull-right" style="cursor: default;" title="Seul le créateur peut lancer la partie">Lancer la partie <i class="ml3 fa fa-play-circle"></i></button> ');
 				}
 				$('.quit-partie').unbind('click').click(function() {
 					socket.emit('quit-partie');
 				});
+				$('.start-partie').unbind('click').click(function() {
+					start_game();
+				});
+					
+
 				updateParticipants();
 				socket.emit('requestConnectedList');
 				processElements();

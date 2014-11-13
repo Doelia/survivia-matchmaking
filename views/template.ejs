@@ -51,13 +51,27 @@
 					<div class="modal-header">
 						<h4 class="modal-title">SURVIVIA Assaut - Matchmaking</h4>
 					</div>
-					<div class="modal-body" id="loading_body" style="text-align: center;">
+					<div class="modal-body" style="text-align: center;">
 						<i class="fa fa-spinner fa-spin"></i>
-						<span id="loading_msg">
-							Création d'une nouvelle partie...
-						</span>
+						Création d'une nouvelle partie...
 						<br><br>
 						<div class="progress progress-striped active"><div class="progress-bar" id="progress_loading_creationpartie" style="width: 100%"></div> </div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="modal_error" tabindex="-1" role="dialog" aria-hidden="true" backdrop="static">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h4 class="modal-title">Action impossible</h4>
+					</div>
+					<div class="modal-body">
+						<div class="alert alert-warning" id="body_error">undefined </div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
 					</div>
 				</div>
 			</div>
