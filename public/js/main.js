@@ -1,5 +1,5 @@
 var socket = null;
-var delay_fake = 0;
+var delay_fake = 2000;
 
 function setCookie(cname,cvalue,exdays) {
 	var d = new Date();
@@ -17,6 +17,13 @@ function getCookie(cname) {
 		if (c.indexOf(name)==0) return c.substring(name.length,c.length);
 	}
 	return "";
+}
+
+function create_alert(message, type) {
+	var button = '<button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>';
+	var created = $('<div class="alert alert-'+type+' fade in" style="display: none;" role="alert">'+button+message+'</div>');
+	$('#logs').append(created);
+	created.show();
 }
 
 function run_app() {
@@ -121,7 +128,7 @@ function load_template() {
 			}
 			processElements();
 
-			$('.invitePlayer').click(function() {
+			$('.invitePlayer').unbind('click').click(function() {
 				var namePlayer = $(this).attr('username');
 				if (!inArray(invitationsPending, namePlayer)) {
 					invitationsPending.push(namePlayer);
@@ -134,8 +141,14 @@ function load_template() {
 			if (val == 'ready') { // Pret pour créer/rejoindre une partie
 				$.get("left_ready.html", function (data) {
 					$('#left-part').html(data);
-					$('#create_partie').click(function() {
-						socket.emit('create-partie');
+					$('#create_partie').unbind('click').click(function() {
+						$('#modal_loading_partie_creation').modal({show: 'true',
+						keyboard: 'false',
+						backdrop: 'static'});
+
+						setTimeout(function() {
+							socket.emit('create-partie');
+						}, delay_fake*2);
 					});
 				});
 			}
@@ -148,23 +161,31 @@ function load_template() {
 		});
 
 		socket.on('partie-preparation', function(json) {
-			console.log('recv: artie-preparation')
+			console.log('recv: partie-preparation');
+			$('#logs').html('');
 			invitationsPending = new Array();
 			partie = json;
 			$.get("left_preparation.html", function (data) {
 				$('#left-part').html(data);
 				$('#buttons_partie').html();
 				if (partie.creator == username) {
-					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie">Annuler</button> ');
-					$('#buttons_partie').append('<button type="button" class="btn btn-success">Lancer la partie!</button> ');
+					$('#buttons_partie').append(' <button type="button" class="btn btn-danger quit-partie pull-right">Annuler</button> ');
+					$('#buttons_partie').append(' <button type="button" class="btn btn-success pull-right mr8">Lancer la partie!</button> ');
 				} else {
-					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie">Quitter</button> ');
+					$('#buttons_partie').append('<button type="button" class="btn btn-danger quit-partie pull-right">Quitter</button> ');
+					$('#buttons_partie').append('<button type="button" class="btn btn-gray tip mr8 pull-right" style="cursor: default;" title="Seul le créateur peut lancer la partie">Lancer la partie!</button> ');
 				}
-				$('.quit-partie').click(function() {
+				$('.quit-partie').unbind('click').click(function() {
 					socket.emit('quit-partie');
 				});
 				updateParticipants();
 				socket.emit('requestConnectedList');
+				processElements();
+				$('#modal_loading_partie_creation').modal('hide');
+
+				if (partie.creator != username) {
+					create_alert('Vous avez rejoint la partie de '+partie.creator, 'success');
+				}
 			});
 		});
 
@@ -179,20 +200,29 @@ function load_template() {
 					keyboard: 'false',
 					backdrop: 'static'});
 			//$('#modal_invitation').attr('inviteur', inviteur);
-			$('#accepteInvitation').click(function() {
-				socket.emit('reponse-rejoin', inviteur, true);		
+
+			var fct = function(reponse) {
+				socket.emit('reponse-rejoin', inviteur, reponse);		
 				$('#modal_invitation').modal('hide');		
-			});
-			$('#refuserInvitation').click(function() {
-				socket.emit('reponse-rejoin', inviteur, false);		
-				$('#modal_invitation').modal('hide');	
-			});
+			}
+
+			$('#accepteInvitation').unbind('click').click(function() { fct(true)});
+			$('#refuserInvitation').unbind('click').click(function() { fct(false)});
 		});
 
 		socket.on('reponse-rejoin', function(usernameInvite, reponse) {
 			console.log("réponse de requete");
 			socket.emit('requestConnectedList');
 			removeOfArray(invitationsPending, usernameInvite);
+			if (reponse) {
+				create_alert(usernameInvite+' a accepté votre invitation', 'success');
+			} else {
+				create_alert(usernameInvite+' a refusé votre invitation', 'danger');
+			}
+		});
+
+		socket.on('alert', function(msg, type) {
+			create_alert(msg, type);
 		});
 
 		socket.on('quit-partie', function() {

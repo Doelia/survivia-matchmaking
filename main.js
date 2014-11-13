@@ -275,6 +275,7 @@ io.sockets.on('connection', function (socket) {
 			} else {
 				logError("reponse-rejoin: Partie introuvable");
 			}
+			console.log('emit reponse-rejoin('+socket.session.username+') @ '+sp.username);
 			sp.socket.emit('reponse-rejoin', socket.session.username, reponse);
 		} else {
 			logError('reponse-rejoin: Session de '+usernameQuiAEnvoyeLinvit+' introuvable');
@@ -300,6 +301,11 @@ io.sockets.on('connection', function (socket) {
 					var s = G.SessionManager.getSessionFromName(p.participants[i]);
 					s.partie = null;
 					s.socket.emit('quit-partie');
+					if (s.username != socket.session.username) {
+						setTimeout(function() {
+							s.socket.emit('alert', 'La partie a été annulée par son créateur', 'danger');
+						}, 200);
+					}
 				}
 				G.PartieManager.removePartie(p);
 				console.log("Partie supprimée");
@@ -307,6 +313,10 @@ io.sockets.on('connection', function (socket) {
 				console.log(socket.session.username+" quitte sa partie");
 				socket.session.partie.removeParticipant(socket.session.username);
 				sendParticipants(socket.session.partie);
+				for (var i in p.participants) {
+					var s = G.SessionManager.getSessionFromName(p.participants[i]);
+					s.socket.emit('alert', socket.session.username+' a quitté la partie', 'danger');
+				}
 			}
 			socket.session.partie = null;
 			socket.emit('quit-partie');
