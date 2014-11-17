@@ -1,5 +1,5 @@
 var socket = null;
-var delay_fake = 0;
+var delay_fake = 1000;
 
 function setCookie(cname,cvalue,exdays) {
 	var d = new Date();
