@@ -1,5 +1,5 @@
 var socket = null;
-var delay_fake = 1000;
+var delay_fake = 200;
 
 function setCookie(cname,cvalue,exdays) {
 	var d = new Date();
@@ -273,7 +273,7 @@ function start_loading(login) {
 	setTimeout(function() {
 		$('#loading_msg').html('Connexion au web-socket...');
 		$('#progress_loading').width('30%');
-		socket = io.connect('http://localhost:8080');
+		socket = io.connect('http://pc.doelia.fr:8080');
 		socket.on('connexion_ok', function() {
 			setTimeout(function() {
 			$('#loading_msg').html('Authentification...');

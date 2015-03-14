@@ -128,7 +128,7 @@ function sendParticipants(partie) {
 
 function defineSession(socket, username, callback) {
 	socket.session.username = username;
-	socket.session.teamMemberList = ['Doelia', 'Slymp', 'Rolphy_'];
+	socket.session.teamMemberList = ['Doelia', 'Slymp', 'Rolphy_', 'K3yr0n', 'MrAkirah'];
 	G.SqlManager.getTeamOf(username, function(nameTeam) {
 		socket.session.team = nameTeam;
 		callback();
