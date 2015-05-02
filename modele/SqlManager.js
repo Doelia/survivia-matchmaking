@@ -9,7 +9,7 @@ function SqlManager() {
 		this.mySqlClient = mysql.createConnection({
 		  host     : "localhost",
 		  user     : "root",
-		  password : "wugaxu",
+		  password : "root",
 		  database : "survivia"
 		});
 	}
